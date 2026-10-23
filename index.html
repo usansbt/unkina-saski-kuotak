@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNKINA Saski Taldea - Kuotak</title>
+
+  <style>
+    :root {
+      --club-blue: #0755f5;
+      --club-blue-dark: #0645ce;
+      --club-blue-light: #eaf3ff;
+      --club-line: #c7ddff;
+      --club-text: #243854;
+      --club-muted: #60799e;
+      --club-white: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 16px 18px 0;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--club-text);
+      background: linear-gradient(145deg, #dceaff 0%, #eef5ff 52%, #e1edff 100%);
+      overflow-x: hidden;
+    }
+    .container { width: 100%; max-width: 1380px; margin: 0 auto; position: relative; z-index: 1; }
+    .panel {
+      background: rgba(255,255,255,.97); border: 1px solid #dce9ff;
+      border-radius: 19px; margin-bottom: 18px; overflow: hidden;
+      box-shadow: 0 8px 24px rgba(21, 76, 163, .07);
+    }
+    .panel-content { padding: 23px; }
+    #langSelector {
+      position: relative; padding: 16px 20px 22px; text-align: center;
+      background: linear-gradient(110deg, #fafdff, #edf5ff 48%, #fafdff);
+      overflow: hidden;
+    }
+    .lang-title {
+      position: relative; z-index: 1; margin: 0 0 8px;
+      color: var(--club-blue); font-size: clamp(22px, 3vw, 31px); line-height: 1.22; font-weight: 850;
+    }
+    button { font-family: inherit; transition: background .16s ease, transform .16s ease, box-shadow .16s ease; }
+    .btn-lang {
+      position: relative; z-index: 1; min-width: 195px; margin: 10px 6px 0;
+      padding: 12px 23px; border-radius: 10px; border: 1.5px solid var(--club-blue);
+      background: var(--club-blue); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer;
+    }
+    .btn-lang + .btn-lang { background: #fff; color: var(--club-blue); }
+    .btn-lang:hover, .btn-add:hover, .btn-submit:hover { background: var(--club-blue-dark); color: #fff; transform: translateY(-1px); }
+    #mainForm { display: none; }
+    .form-group { margin-bottom: 17px; }
+    .consent-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 11px; color: var(--club-text); font-size: 13px; line-height: 1.45; font-weight: 500; }
+    .consent-row input[type="checkbox"] { flex: 0 0 auto; width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--club-blue); }
+    .consent-row label { display: inline; margin: 0; font-size: 13px; line-height: 1.45; font-weight: 600; cursor: pointer; }
+    label { display: block; margin-bottom: 7px; color: #334765; font-size: 14px; font-weight: 750; }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="file"], select {
+      display: block; width: 100%; min-height: 45px; padding: 10px 12px;
+      border: 1px solid #cbdaf0; border-radius: 9px; background: #fff;
+      color: var(--club-text); font: inherit; font-size: 14px;
+    }
+    .jokalari-card { margin-bottom: 13px; padding: 17px; background: #fff; border: 1px solid var(--club-line); border-radius: 10px; }
+    .jokalari-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #e5efff; color: var(--club-blue); font-weight: 850; }
+    .btn-remove { padding: 7px 10px; border: 1px solid #f1c6c2; border-radius: 7px; background: #fff; color: #b42318; cursor: pointer; font-weight: 700; }
+    .btn-add, .btn-submit {
+      display: block; width: 100%; padding: 13px 16px; border: 1px solid var(--club-blue);
+      border-radius: 99px; background: var(--club-blue); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer;
+    }
+    .btn-add { margin-bottom: 19px; border-radius: 9px; }
+    .summary-box {
+      margin: 18px 0; padding: 15px 18px; border: 1px solid var(--club-line); border-radius: 9px;
+      background: linear-gradient(100deg, #eaf3ff, #f3f8ff); text-align: right;
+      color: var(--club-blue-dark); font-size: 19px; font-weight: 850;
+    }
+    #loading { display: none; margin-top: 15px; color: var(--club-blue); text-align: center; font-weight: 750; }
+    .error-message { display: none; margin-bottom: 16px; padding: 13px; border: 1px solid #ffd4d0; border-radius: 8px; background: #fff1f0; color: #a32118; }
+    #successMessage { display: none; text-align: center; padding: 30px; background: #fff; border-radius: 15px; margin-top: 20px; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- Hizkuntza hautatzea -->
+    <div id="langSelector" class="panel">
+      <div class="lang-title">Aukeratu hizkuntza / Selecciona el idioma</div>
+      <button type="button" class="btn-lang" onclick="selectLanguage('eu')">EUSKARA</button>
+      <button type="button" class="btn-lang" onclick="selectLanguage('es')">CASTELLANO</button>
+    </div>
+
+    <!-- Formulario Nagusia -->
+    <div id="mainForm" class="panel panel-content">
+      <h2 id="formTitle">UNKINA Saski Taldea - Kuotak</h2>
+      
+      <div id="errorMessage" class="error-message"></div>
+
+      <form id="kuotaForm">
+        <div class="form-group">
+          <label id="lblEmail" for="email">Posta elektronikoa *</label>
+          <input type="email" id="email" required>
+        </div>
+
+        <div class="form-group">
+          <label id="lblTel" for="telefonoa">Telefonoa *</label>
+          <input type="tel" id="telefonoa" required>
+        </div>
+
+        <div id="jokalariakContainer"></div>
+
+        <button type="button" class="btn-add" id="btnAddPlayer" onclick="addJokalaria()">+ Gehitu beste jokalari bat</button>
+
+        <div class="summary-box">
+          <span id="lblTotal">GUZTIRA:</span> <span id="totalDisplay">0</span> €
+        </div>
+
+        <div class="form-group">
+          <label id="lblReceipt" for="ordainagiria">Igo ordainagiria (PDF, JPG, PNG) *</label>
+          <input type="file" id="ordainagiria" accept=".pdf,.jpg,.jpeg,.png,.webp" required>
+        </div>
+
+        <div class="consent-row">
+          <input type="checkbox" id="aceptaComunicaciones" required>
+          <label id="lblConsent" for="aceptaComunicaciones">Baimena ematen dut taldeari buruzko mezuak jasotzeko.</label>
+        </div>
+
+        <br>
+        <button type="submit" class="btn-submit" id="btnSubmit">Bipildu eta Ordaindu</button>
+      </form>
+
+      <div id="loading">Bidaltzen... Mesedez itxaron.</div>
+    </div>
+
+    <!-- Arrakasta mezuaren orria -->
+    <div id="successMessage" class="panel">
+      <h2 style="color: var(--club-blue);" id="succTitle">Eskerrik asko!</h2>
+      <p id="succText">Formularioa egokiro bidali da. Egiaztagiria bidali dizugu zure posta elektronikora.</p>
+    </div>
+
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // ALDATU HAU: Jarri hemen zure Apps Script Web App-aren URLa
+    // -------------------------------------------------------------
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxd1qufIVn1aq_kv9bk7XDUgngg1rXipjP-zeqgIctP_CNH39p7tOMkjsqE6UeTmkTo/exec"; 
+
+    let currentLang = 'eu';
+    let jokalariKopurua = 0;
+
+    const texts = {
+      eu: {
+        title: "UNKINA Saski Taldea - Kuotak",
+        email: "Posta elektronikoa *",
+        tel: "Telefonoa *",
+        addPlayer: "+ Gehitu beste jokalari bat",
+        total: "GUZTIRA:",
+        receipt: "Igo ordainagiria (PDF, JPG, PNG, WEBP) *",
+        consent: "Komunikazioetarako baimena onartzen dut.",
+        submit: "Bidali Formularioa",
+        loading: "Datuak bidaltzen... Itxaron mesedez.",
+        succTitle: "Eskerrik asko!",
+        succText: "Datuak zuzen gorde dira. Zure posta elektronikoan jasoko duzu egiaztagiria."
+      },
+      es: {
+        title: "UNKINA Saski Taldea - Cuotas",
+        email: "Correo electrónico *",
+        tel: "Teléfono *",
+        addPlayer: "+ Añadir otro/a jugador/a",
+        total: "TOTAL:",
+        receipt: "Subir justificante (PDF, JPG, PNG, WEBP) *",
+        consent: "Acepto el consentimiento para comunicaciones.",
+        submit: "Enviar Formulario",
+        loading: "Enviando datos... Por favor espera.",
+        succTitle: "¡Muchas gracias!",
+        succText: "Los datos se han enviado correctamente. Recibirás un justificante en tu correo electrónico."
+      }
+    };
+
+    function selectLanguage(lang) {
+      currentLang = lang;
+      document.getElementById('langSelector').style.display = 'none';
+      document.getElementById('mainForm').style.display = 'block';
+
+      const t = texts[lang];
+      document.getElementById('formTitle').innerText = t.title;
+      document.getElementById('lblEmail').innerText = t.email;
+      document.getElementById('lblTel').innerText = t.tel;
+      document.getElementById('btnAddPlayer').innerText = t.addPlayer;
+      document.getElementById('lblTotal').innerText = t.total;
+      document.getElementById('lblReceipt').innerText = t.receipt;
+      document.getElementById('lblConsent').innerText = t.consent;
+      document.getElementById('btnSubmit').innerText = t.submit;
+      document.getElementById('loading').innerText = t.loading;
+
+      if (jokalariKopurua === 0) {
+        addJokalaria();
+      }
+    }
+
+    function addJokalaria() {
+      const container = document.getElementById('jokalariakContainer');
+      const index = jokalariKopurua;
+      const card = document.createElement('div');
+      card.className = 'jokalari-card';
+      card.id = `jokalari_${index}`;
+
+      card.innerHTML = `
+        <div class="jokalari-header">
+          <span>${currentLang === 'eu' ? 'Jokalaria' : 'Jugador/a'} #${index + 1}</span>
+          ${index > 0 ? `<button type="button" class="btn-remove" onclick="removeJokalaria(${index})">X</button>` : ''}
+        </div>
+        <div class="form-group">
+          <label>${currentLang === 'eu' ? 'Izen-abizenak *' : 'Nombre y apellidos *'}</label>
+          <input type="text" id="jokalari_izena_${index}" oninput="calculateTotal()" required>
+        </div>
+        <div class="form-group">
+          <label>${currentLang === 'eu' ? 'Kategoria *' : 'Categoría *'}</label>
+          <select id="jokalari_kategoria_${index}" onchange="calculateTotal()" required>
+            <option value="">-- ${currentLang === 'eu' ? 'Hautatu' : 'Seleccionar'} --</option>
+            <option value="Txikiak">Txikiak (85€)</option>
+            <option value="Eskolarrak">Eskolarrak (170€)</option>
+            <option value="Kadeteak_Beteranak">Kadeteak / Beteranak (190€)</option>
+            <option value="Junior_Senior">Junior / Senior (230€)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>${currentLang === 'eu' ? 'Aurreinskripzioa egin duzu? (-60€)' : '¿Has realizado la preinscripción? (-60€)'}</label>
+          <select id="jokalari_aurreinskripzioa_${index}" onchange="calculateTotal()">
+            <option value="bai">${currentLang === 'eu' ? 'BAI' : 'SÍ'}</option>
+            <option value="ez">${currentLang === 'eu' ? 'EZ' : 'NO'}</option>
+          </select>
+        </div>
+      `;
+      container.appendChild(card);
+      jokalariKopurua++;
+      calculateTotal();
+    }
+
+    function removeJokalaria(index) {
+      const card = document.getElementById(`jokalari_${index}`);
+      if (card) {
+        card.remove();
+        calculateTotal();
+      }
+    }
+
+    function getBaseKuota(kategoria) {
+      switch (kategoria) {
+        case "Txikiak": return 85;
+        case "Eskolarrak": return 170;
+        case "Kadeteak_Beteranak": return 190;
+        case "Junior_Senior": return 230;
+        default: return 0;
+      }
+    }
+
+    function calculateTotal() {
+      const list = [];
+      for (let i = 0; i < jokalariKopurua; i++) {
+        const katEl = document.getElementById(`jokalari_kategoria_${i}`);
+        const aurreEl = document.getElementById(`jokalari_aurreinskripzioa_${i}`);
+        if (katEl) {
+          const kategoria = katEl.value;
+          const aurreInsk = aurreEl ? aurreEl.value : 'bai';
+          const base = getBaseKuota(kategoria);
+          if (base > 0) {
+            list.push({ base, aurreInsk });
+          }
+        }
+      }
+
+      list.sort((a, b) => b.base - a.base);
+
+      let total = 0;
+      list.forEach((item, idx) => {
+        let kuota = item.base;
+        if (idx > 0) kuota *= 0.5;
+        if (item.aurreInsk === 'bai') kuota = Math.max(0, kuota - 60);
+        total += kuota;
+      });
+
+      document.getElementById('totalDisplay').innerText = total;
+    }
+
+    // File to Base64 bihurgailua
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const encoded = reader.result.toString().replace(/^data:(.*,)?/, '');
+          resolve(encoded);
+        };
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    // Formularioa bidali Fetch bidez
+    document.getElementById('kuotaForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const errDiv = document.getElementById('errorMessage');
+      errDiv.style.display = 'none';
+
+      const fileInput = document.getElementById('ordainagiria');
+      if (!fileInput.files.length) {
+        errDiv.innerText = currentLang === 'eu' ? "Mesedez, hautatu ordainagiria." : "Por favor, selecciona el justificante.";
+        errDiv.style.display = 'block';
+        return;
+      }
+
+      const file = fileInput.files[0];
+      if (file.size > 10 * 1024 * 1024) {
+        errDiv.innerText = currentLang === 'eu' ? "Fitxategiak gehienez 10MB izan ditzake." : "El archivo no puede superar los 10MB.";
+        errDiv.style.display = 'block';
+        return;
+      }
+
+      document.getElementById('btnSubmit').disabled = true;
+      document.getElementById('loading').style.display = 'block';
+
+      try {
+        const base64File = await fileToBase64(file);
+
+        const payload = {
+          lang: currentLang,
+          email: document.getElementById('email').value,
+          telefonoa: document.getElementById('telefonoa').value,
+          aceptaComunicaciones: document.getElementById('aceptaComunicaciones').checked,
+          jokalariKopurua: jokalariKopurua,
+          ordainagiria: {
+            name: file.name,
+            mimeType: file.type,
+            base64: base64File
+          }
+        };
+
+        for (let i = 0; i < jokalariKopurua; i++) {
+          const izena = document.getElementById(`jokalari_izena_${i}`);
+          if (izena) {
+            payload[`jokalari_izena_${i}`] = izena.value;
+            payload[`jokalari_kategoria_${i}`] = document.getElementById(`jokalari_kategoria_${i}`).value;
+            payload[`jokalari_aurreinskripzioa_${i}`] = document.getElementById(`jokalari_aurreinskripzioa_${i}`).value;
+            payload[`jokalari_taldea_${i}`] = "Besteak";
+          }
+        }
+
+        // Fetch eskaera Google Apps Script-era
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const resData = await response.json();
+
+        if (resData.success) {
+          document.getElementById('mainForm').style.display = 'none';
+          document.getElementById('successMessage').style.display = 'block';
+        } else {
+          throw new Error(resData.error || "Errorea gertatu da bidaltzean.");
+        }
+
+      } catch (err) {
+        errDiv.innerText = err.message || "Errorea gertatu da zerbitzariarekin konektatzean.";
+        errDiv.style.display = 'block';
+      } finally {
+        document.getElementById('btnSubmit').disabled = false;
+        document.getElementById('loading').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
