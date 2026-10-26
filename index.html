@@ -238,6 +238,8 @@
 
 
   <script>
+    // Apps Script web app-aren URLa (Deploy > Manage deployments > Web app URL, /exec amaitzen dena)
+    const API_URL = "https://script.google.com/macros/s/AKfycbzhNaOc0wLJxbqlh8avV8WXZLv-EYrcltPaAfnWfpSAsPeL_dg-_Q124NxnsYTrx4ra/exec";
 
 
   // AUTO-LIMPIEZA DE MULTI-CUENTA DE GOOGLE
@@ -283,7 +285,7 @@
         bankTitle: "Ordainketarako Kontu Korrontea:",
         email: "Jokalari / Guraso edo Tutorearen Posta Elektronikoa *",
         phone: "Harremanetarako Telefonoa *",
-        consent: "Onartzen dut informazioa eta komunikazioak emandako telefono-zenbakian jasotzea.",
+        consent: "Telefono hau harremanetarako baliabide gisa erabiltzeko baimena ematen dut.",
         playersTitle: "Jokalarien Datuak",
         playerHeader: "Jokalaria",
         remove: "Ezabatu",
@@ -309,7 +311,7 @@
         bankTitle: "Cuenta Bancaria para el Pago:",
         email: "Correo Electrónico de la jugadora o jugador o Padre / Madre / Tutor *",
         phone: "Teléfono de Contacto *",
-        consent: "Acepto recibir información y comunicaciones en el número de teléfono facilitado.",
+        consent: "Doy mi consentimiento para utilizar este teléfono como medio de contacto.",
         playersTitle: "Datos de los Jugadores/as",
         playerHeader: "Jugador/a",
         remove: "Eliminar",
@@ -389,20 +391,16 @@
       document.getElementById("submitBtn").textContent = t.btnSubmit;
       document.getElementById("loading").textContent = t.loading;
 
-      google.script.run
-        .withSuccessHandler(function(taldeak) {
-          taldeakOptions = Array.isArray(taldeak) && taldeak.length ? taldeak : ["Besteak"];
-          document.getElementById("jokalariakContainer").innerHTML = "";
-          jokalariIndex = 0;
-          addJokalari();
-        })
-        .withFailureHandler(function(error) {
-          taldeakOptions = ["Besteak"];
-          document.getElementById("jokalariakContainer").innerHTML = "";
-          jokalariIndex = 0;
-          addJokalari();
-        })
-        .getTaldeak();
+      function hasieratuJokalariak(taldeak) {
+        taldeakOptions = Array.isArray(taldeak) && taldeak.length ? taldeak : ["Besteak"];
+        document.getElementById("jokalariakContainer").innerHTML = "";
+        jokalariIndex = 0;
+        addJokalari();
+      }
+      fetch(API_URL + "?action=getTaldeak")
+        .then(function(r) { return r.json(); })
+        .then(hasieratuJokalariak)
+        .catch(function() { hasieratuJokalariak(["Besteak"]); });
     }
 
     function addJokalari() {
@@ -638,15 +636,19 @@
             if (el.type === "file") return;
             payload[el.name] = el.value;
           });
-          google.script.run
-            .withSuccessHandler(function(res) {
+          fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload)
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
               if (res && res.success) erakutsiAmaieraPantaila(i18n[currentLang]);
               else erakutsiErrorea(res && res.error ? res.error : i18n[currentLang].genericError);
             })
-            .withFailureHandler(function(error) {
+            .catch(function(error) {
               erakutsiErrorea(error && error.message ? error.message : i18n[currentLang].genericError);
-            })
-            .processForm(payload);
+            });
         } catch (e) { erakutsiErrorea(e.message || i18n[currentLang].genericError); }
       };
       reader.readAsDataURL(file);
