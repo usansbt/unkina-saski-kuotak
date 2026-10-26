@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-
   <style>
     :root {
       --club-blue: #0755f5;
@@ -91,6 +90,9 @@
     .copy-account-btn svg { width: 14px; height: 14px; flex: 0 0 14px; }
     .copy-feedback { display: inline-block; min-width: 1px; color: var(--club-blue-dark); font-size: 12px; font-weight: 750; }
     .form-group { margin-bottom: 17px; }
+    .consent-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 11px; color: var(--club-text); font-size: 13px; line-height: 1.45; font-weight: 500; }
+    .consent-row input[type="checkbox"] { flex: 0 0 auto; width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--club-blue); }
+    .consent-row label { display: inline; margin: 0; font-size: 13px; line-height: 1.45; font-weight: 600; cursor: pointer; }
     label { display: block; margin-bottom: 7px; color: #334765; font-size: 14px; font-weight: 750; }
     input[type="text"], input[type="email"], input[type="tel"], input[type="file"], select {
       display: block; width: 100%; min-height: 45px; padding: 10px 12px;
@@ -199,6 +201,10 @@
             <div class="form-group">
               <label id="t_lbl_phone" for="telefonoa"></label>
               <input type="tel" name="telefonoa" id="telefonoa" required autocomplete="tel" placeholder="600 00 00 00">
+              <div class="consent-row">
+                <input type="checkbox" name="aceptaComunicaciones" id="aceptaComunicaciones" value="BAI" checked required>
+                <label id="t_lbl_consent" for="aceptaComunicaciones"></label>
+              </div>
             </div>
           </div>
 
@@ -232,12 +238,20 @@
 
 
   <script>
-    // ZURE web aplikazioaren URLa (Deploy > Manage deployments > Web app URL, /exec-ekin amaitzen dena)
-    const API_URL = "https://script.google.com/macros/s/AKfycbxVkj5vDz3lAiEyx4vSbSUXbreKxswtG8gdszMggIV9-OfOSIwreHhhrzNFkjO7fMDI/exec";
 
 
+  // AUTO-LIMPIEZA DE MULTI-CUENTA DE GOOGLE
+  (function fixGoogleMultiAccount() {
+    var currentUrl = window.location.href;
+    // Si la URL contiene /u/0/, /u/1/, /u/2/, etc., lo eliminamos
+    if (/\/u\/\d+\//.test(currentUrl)) {
+      var cleanUrl = currentUrl.replace(/\/u\/\d+\//, '/');
+      window.top.location.href = cleanUrl;
+    }
+  })();
 
   let taldeakList = ["Besteak"];
+  // ... resto de tu código JS ...
     const taldeakKategoriarenArabera = {
       "Txikiak": ["TXIKIAK UNKINA"],
       "Eskolarrak": [
@@ -269,6 +283,7 @@
         bankTitle: "Ordainketarako Kontu Korrontea:",
         email: "Jokalari / Guraso edo Tutorearen Posta Elektronikoa *",
         phone: "Harremanetarako Telefonoa *",
+        consent: "Telefono hau harremanetarako baliabide gisa erabiltzeko baimena ematen dut.",
         playersTitle: "Jokalarien Datuak",
         playerHeader: "Jokalaria",
         remove: "Ezabatu",
@@ -294,6 +309,7 @@
         bankTitle: "Cuenta Bancaria para el Pago:",
         email: "Correo Electrónico de la jugadora o jugador o Padre / Madre / Tutor *",
         phone: "Teléfono de Contacto *",
+        consent: "Doy mi consentimiento para utilizar este teléfono como medio de contacto.",
         playersTitle: "Datos de los Jugadores/as",
         playerHeader: "Jugador/a",
         remove: "Eliminar",
@@ -365,6 +381,7 @@
       document.getElementById("copyAccountBtn").title = lang === "es" ? "Copiar número de cuenta" : "Kopiatu kontu-zenbakia";
       document.getElementById("t_lbl_email").textContent = t.email;
       document.getElementById("t_lbl_phone").textContent = t.phone;
+      document.getElementById("t_lbl_consent").textContent = t.consent;
       document.getElementById("t_players_title").textContent = t.playersTitle;
       document.getElementById("t_lbl_receipt").textContent = t.receipt;
       document.getElementById("t_btn_add").textContent = t.btnAdd;
@@ -372,21 +389,20 @@
       document.getElementById("submitBtn").textContent = t.btnSubmit;
       document.getElementById("loading").textContent = t.loading;
 
-      fetch(API_URL)
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-          const taldeak = res && res.taldeak;
+      google.script.run
+        .withSuccessHandler(function(taldeak) {
           taldeakOptions = Array.isArray(taldeak) && taldeak.length ? taldeak : ["Besteak"];
           document.getElementById("jokalariakContainer").innerHTML = "";
           jokalariIndex = 0;
           addJokalari();
         })
-        .catch(function() {
+        .withFailureHandler(function(error) {
           taldeakOptions = ["Besteak"];
-          jokalariIndex = 0;
           document.getElementById("jokalariakContainer").innerHTML = "";
+          jokalariIndex = 0;
           addJokalari();
-        });
+        })
+        .getTaldeak();
     }
 
     function addJokalari() {
@@ -586,28 +602,6 @@
       eguneratuJokalariKopurua();
     }
 
-    // Argazkiak txikitu bidali aurretik (mugikorreko argazkiak oso handiak izaten dira)
-    function prepareReceipt(file) {
-      const isImage = /^image\/(jpeg|png|webp)$/.test(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name);
-      if (!isImage || !window.createImageBitmap) return Promise.resolve(file);
-      return createImageBitmap(file).then(function(bmp) {
-        const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
-        const w = Math.max(1, Math.round(bmp.width * scale));
-        const hgt = Math.max(1, Math.round(bmp.height * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = hgt;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, hgt);
-        ctx.drawImage(bmp, 0, 0, w, hgt);
-        return new Promise(function(resolve) {
-          canvas.toBlob(function(blob) {
-            if (blob && blob.size > 0 && blob.size < file.size) resolve(new File([blob], "ordainagiria.jpg", { type: "image/jpeg" }));
-            else resolve(file);
-          }, "image/jpeg", 0.85);
-        });
-      }).catch(function() { return file; });
-    }
-
     function bidaliFormularioa(formObj) {
       if (bidalketaAbian) return;
       const form = document.getElementById("kuotaForm");
@@ -630,7 +624,6 @@
       bidalketaAbian = true;
       submitBtn.disabled = true;
       document.getElementById("loading").style.display = "block";
-      let fileToSend = file;
       const reader = new FileReader();
       reader.onerror = function() { erakutsiErrorea(currentLang === "eu" ? "Ezin izan da fitxategia irakurri." : "No se pudo leer el archivo."); };
       reader.onload = function(event) {
@@ -638,33 +631,25 @@
           const dataUrl = String(event.target.result || "");
           const comma = dataUrl.indexOf(",");
           if (comma < 0) throw new Error("Ezin izan da fitxategia irakurri / No se pudo leer el archivo.");
-          const payload = {lang: currentLang, email: document.getElementById("email").value.trim(), telefonoa: document.getElementById("telefonoa").value.trim(), jokalariKopurua: document.getElementById("jokalariKopurua").value, ordainagiria: {name:fileToSend.name, mimeType:fileToSend.type || mimeType, base64:dataUrl.substring(comma + 1)}};
+          const payload = {lang: currentLang, email: document.getElementById("email").value.trim(), telefonoa: document.getElementById("telefonoa").value.trim(), aceptaComunicaciones: document.getElementById("aceptaComunicaciones").checked, jokalariKopurua: document.getElementById("jokalariKopurua").value, ordainagiria: {name:file.name, mimeType:mimeType, base64:dataUrl.substring(comma + 1)}};
           const fields = form.querySelectorAll("[name]");
           fields.forEach(function(el) {
-            if (!el.name || el.name === "ordainagiria" || el.name === "lang" || el.name === "email" || el.name === "telefonoa" || el.name === "jokalariKopurua") return;
+            if (!el.name || el.name === "ordainagiria" || el.name === "lang" || el.name === "email" || el.name === "telefonoa" || el.name === "jokalariKopurua" || el.name === "aceptaComunicaciones") return;
             if (el.type === "file") return;
             payload[el.name] = el.value;
           });
-          fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(payload)
-          })
-            .then(function(r) { return r.json(); })
-            .then(function(res) {
+          google.script.run
+            .withSuccessHandler(function(res) {
               if (res && res.success) erakutsiAmaieraPantaila(i18n[currentLang]);
               else erakutsiErrorea(res && res.error ? res.error : i18n[currentLang].genericError);
             })
-            .catch(function(error) {
+            .withFailureHandler(function(error) {
               erakutsiErrorea(error && error.message ? error.message : i18n[currentLang].genericError);
-            });
+            })
+            .processForm(payload);
         } catch (e) { erakutsiErrorea(e.message || i18n[currentLang].genericError); }
       };
-      prepareReceipt(file).then(function(f) {
-        fileToSend = f;
-        if (f.size > 10 * 1024 * 1024) { erakutsiErrorea(currentLang === "eu" ? "Fitxategiak gehienez 10 MB izan ditzake." : "El archivo no puede superar los 10 MB."); return; }
-        reader.readAsDataURL(f);
-      });
+      reader.readAsDataURL(file);
     }
 
     function erakutsiErrorea(message) {
